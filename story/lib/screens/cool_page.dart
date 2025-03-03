@@ -11,40 +11,104 @@ class CoolPage extends StatelessWidget {
             padding: const EdgeInsets.all(16.0),
             child: Column(
               children: [
-                // Logo Image
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 20.0),
+                // Image at the top with rounded corners
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(
+                    20.0,
+                  ), // Adjust the radius as needed
                   child: Container(
+                    height: 250, // Adjust the height as needed
+                    width: 300, // Adjust the width as needed
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
+                      color:
+                          Colors
+                              .transparent, // Ensure the container is transparent
+                      borderRadius: BorderRadius.circular(20.0),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
-                          spreadRadius: 2,
-                          blurRadius: 10,
-                          offset: Offset(0, 5),
+                          color: Colors.black.withOpacity(0.3), // Shadow color
+                          spreadRadius: 2, // Spread radius
+                          blurRadius: 5, // Blur radius
+                          offset: Offset(0, 3), // Shadow position
+                        ),
+                        BoxShadow(
+                          color: Colors.white.withOpacity(
+                            0.2,
+                          ), // Highlight color
+                          spreadRadius: -2, // Negative spread for highlight
+                          blurRadius: 5, // Blur radius for highlight
+                          offset: Offset(0, -3), // Highlight position
                         ),
                       ],
                     ),
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(
+                        20.0,
+                      ), // Ensure the image is clipped
                       child: Image.asset(
                         'assets/images/f39e6127-7194-41c3-95b6-57711e7546e1.jpeg',
-                        width: 300,
-                        height: 350,
-                        fit: BoxFit.cover,
+                        fit: BoxFit.cover, // Ensure the entire image is visible
                       ),
                     ),
                   ),
                 ),
+                SizedBox(
+                  height: 20,
+                ), // Add some space between the image and text
                 // Title
                 Padding(
                   padding: const EdgeInsets.only(bottom: 20.0),
-                  child: Text(
-                    'AI-Driven Path to Gratitude & Responsibility. \nLet\'s Start the Journey of Learning Through Stories!',
-                    style: TextStyle(
-                      fontSize: 28,
-                      color: Colors.white,
+                  child: RichText(
+                    textAlign: TextAlign.center,
+                    text: TextSpan(
+                      children: [
+                        TextSpan(
+                          text:
+                              'AI-Driven Path to Gratitude & Responsibility.\n',
+                          style: TextStyle(
+                            fontSize: 45,
+                            color: Colors.greenAccent, // Blend of green color
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        TextSpan(
+                          text:
+                              'Let\'s Start the Journey of Learning Through Stories!\n\n',
+                          style: TextStyle(
+                            fontSize: 28,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        TextSpan(
+                          text:
+                              'Immerse yourself in meaningful stories, much like enjoying a playlist of music.',
+                          style: TextStyle(
+                            fontSize: 20, // Smaller font size
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                // Button
+                ElevatedButton(
+                  onPressed: () {
+                    // Define the action when the button is pressed
+                  },
+                  child: Text('Let\'s Get Started'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.greenAccent, // Updated button color
+                    foregroundColor: const Color.fromARGB(
+                      255,
+                      15,
+                      11,
+                      11,
+                    ), // Updated text color
+                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    textStyle: TextStyle(
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -56,25 +120,25 @@ class CoolPage extends StatelessWidget {
                     children: [
                       buildImageCard(
                         'assets/images/de6bcd22-25ba-42af-8cf5-cb16a6f9f2bf.jpeg',
-                        width: MediaQuery.of(context).size.width * 0.6,
+                        width: MediaQuery.of(context).size.width * 0.7,
                         angle: 0.2,
                       ),
                       SizedBox(width: 10),
                       buildImageCard(
                         'assets/images/36fca13d-c3e5-46dc-a17d-cd43ed38d89b.jpeg',
-                        width: MediaQuery.of(context).size.width * 0.6,
+                        width: MediaQuery.of(context).size.width * 0.65,
                         angle: 0.0,
                       ),
                       SizedBox(width: 10),
                       buildImageCard(
                         'assets/images/aa53ce2d-4714-4ad1-ad4a-e51375709cb5.jpeg',
-                        width: MediaQuery.of(context).size.width * 0.6,
+                        width: MediaQuery.of(context).size.width * 0.65,
                         angle: -0.2,
                       ),
                       SizedBox(width: 10),
                       buildImageCard(
                         'assets/images/d65f1452-2bf2-47b1-8d8f-8cd8762db9b3.jpeg',
-                        width: MediaQuery.of(context).size.width * 0.6,
+                        width: MediaQuery.of(context).size.width * 0.7,
                         angle: -0.4,
                       ),
                     ],
