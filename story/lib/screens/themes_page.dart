@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:story/widgets/gradient_scaffold.dart';
-import '../services/mock_story_service.dart';
+import '../services/story_service.dart';
 import '../models/story.dart';
 import '../screens/story_player_page.dart';
+import 'dart:convert';
 
 class ThemesPage extends StatefulWidget {
   @override
@@ -14,7 +15,7 @@ class _ThemesPageState extends State<ThemesPage>
   int? hoveredIndex;
   int? selectedTheme;
   late AnimationController _controller;
-  final MockStoryService _storyService = MockStoryService();
+  final StoryService _storyService = StoryService();
   List<Story> _stories = [];
   bool _isLoading = false;
   String? _error;
@@ -38,19 +39,31 @@ class _ThemesPageState extends State<ThemesPage>
     setState(() {
       _isLoading = true;
       _error = null;
+      // Initialize with mock data immediately
+      _stories = [
+        Story(
+          id: 'mock1',
+          title: 'Loading more stories...',
+          description: 'Please wait while we fetch more stories.',
+          base64Image: '', // Add a placeholder image if needed
+          storyText: '',
+          themeId: (themeIndex + 1).toString(),
+        ),
+      ];
     });
 
     try {
-      final stories = await _storyService.getStoriesByTheme(
-        themeIndex.toString(),
+      final stories = await _storyService.getStories(
+        themeId: (themeIndex + 1).toString(),
       );
       setState(() {
-        _stories = stories;
+        // Append the API stories to existing mock data
+        _stories.addAll(stories);
         _isLoading = false;
       });
     } catch (e) {
       setState(() {
-        _error = 'Failed to load stories';
+        _error = 'Failed to load some stories';
         _isLoading = false;
       });
     }
@@ -424,7 +437,11 @@ class _ThemesPageState extends State<ThemesPage>
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(8),
                                     image: DecorationImage(
-                                      image: NetworkImage(story.imageUrl),
+                                      image: MemoryImage(
+                                        base64Decode(
+                                          story.base64Image.split(',').last,
+                                        ),
+                                      ),
                                       fit: BoxFit.cover,
                                     ),
                                   ),
@@ -446,6 +463,8 @@ class _ThemesPageState extends State<ThemesPage>
                                       SizedBox(height: 4),
                                       Text(
                                         story.description,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
                                         style: TextStyle(
                                           fontSize: 14,
                                           color: Colors.white70,

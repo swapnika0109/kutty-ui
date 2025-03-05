@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/story.dart';
+import '../services/story_service.dart';
+import 'dart:convert';
 
 class StoryPlayerPage extends StatefulWidget {
   final Story story;
@@ -21,6 +23,8 @@ class _StoryPlayerPageState extends State<StoryPlayerPage>
   bool _isPlaying = false;
   int _currentLineIndex = 0;
   late List<String> _storyLines;
+
+  final StoryService _storyService = StoryService();
 
   // Colors for different lines with more vibrant, kid-friendly colors
   final List<Color> _lineColors = [
@@ -145,226 +149,69 @@ class _StoryPlayerPageState extends State<StoryPlayerPage>
     );
   }
 
+  Widget _buildStoryImage(Story story) {
+    if (story.isBase64Image()) {
+      return Image.memory(
+        base64Decode(story.getDisplayImage().split(',').last),
+        fit: BoxFit.cover,
+      );
+    } else {
+      return Image.asset(story.getDisplayImage(), fit: BoxFit.cover);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFF1A1B35),
-      body: SafeArea(
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0xFF1A1B35), Color(0xFF16213E)],
+      appBar: AppBar(title: Text(widget.story.title)),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Display the story image
+            AspectRatio(
+              aspectRatio: 16 / 9,
+              child: _buildStoryImage(widget.story),
             ),
-          ),
-          child: Column(
-            children: [
-              // Header with story title
+            // Display the story text
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.story.title,
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    widget.story.storyText,
+                    style: TextStyle(fontSize: 16, height: 1.5),
+                  ),
+                ],
+              ),
+            ),
+            // Add navigation buttons for playlist
+            if (widget.playlist.length > 1)
               Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    IconButton(
-                      icon: Icon(
-                        Icons.keyboard_arrow_down,
-                        color: Colors.white,
+                    if (widget.currentIndex > 0)
+                      ElevatedButton(
+                        onPressed: _previousStory,
+                        child: Text('Previous Story'),
                       ),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Text(
-                            'NOW PLAYING',
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 12,
-                              letterSpacing: 1,
-                            ),
-                          ),
-                          SizedBox(height: 4),
-                          Text(
-                            widget.story.title,
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
+                    if (widget.currentIndex < widget.playlist.length - 1)
+                      ElevatedButton(
+                        onPressed: _nextStory,
+                        child: Text('Next Story'),
                       ),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.more_vert, color: Colors.white),
-                      onPressed: () {},
-                    ),
                   ],
                 ),
               ),
-
-              // Story Image with animation
-              Expanded(
-                flex: 3,
-                child: TweenAnimationBuilder(
-                  duration: Duration(milliseconds: 500),
-                  tween: Tween<double>(begin: 0.8, end: 1.0),
-                  builder: (context, double value, child) {
-                    return Transform.scale(
-                      scale: value,
-                      child: Container(
-                        margin: EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 16,
-                        ),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: _lineColors[_currentLineIndex %
-                                      _lineColors.length]
-                                  .withOpacity(0.2),
-                              blurRadius: 20,
-                              spreadRadius: 5,
-                            ),
-                          ],
-                          border: Border.all(
-                            color: _lineColors[_currentLineIndex %
-                                    _lineColors.length]
-                                .withOpacity(0.3),
-                            width: 2,
-                          ),
-                          image: DecorationImage(
-                            image: NetworkImage(widget.story.imageUrl),
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-
-              // Story Text Area
-              Expanded(
-                flex: 2,
-                child: Container(
-                  padding: EdgeInsets.all(24),
-                  child: SingleChildScrollView(
-                    child: Column(
-                      children: List.generate(
-                        _storyLines.length,
-                        (index) => AnimatedContainer(
-                          duration: Duration(milliseconds: 300),
-                          curve: Curves.easeOutCubic,
-                          margin: EdgeInsets.symmetric(vertical: 8.0),
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: index == _currentLineIndex ? 12 : 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color:
-                                index <= _currentLineIndex
-                                    ? _lineColors[index % _lineColors.length]
-                                        .withOpacity(0.1)
-                                    : Colors.transparent,
-                            borderRadius: BorderRadius.circular(12),
-                            border:
-                                index == _currentLineIndex
-                                    ? Border.all(
-                                      color:
-                                          _lineColors[index %
-                                              _lineColors.length],
-                                      width: 2,
-                                    )
-                                    : null,
-                          ),
-                          child: Text(
-                            _storyLines[index],
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color:
-                                  index <= _currentLineIndex
-                                      ? _lineColors[index % _lineColors.length]
-                                      : Colors.white.withOpacity(0.3),
-                              fontSize: index == _currentLineIndex ? 28 : 24,
-                              fontWeight:
-                                  index == _currentLineIndex
-                                      ? FontWeight.bold
-                                      : FontWeight.normal,
-                              height: 1.3,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-              // Progress Bar
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: LinearProgressIndicator(
-                        value: (_currentLineIndex + 1) / _storyLines.length,
-                        backgroundColor: Colors.white24,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          _lineColors[_currentLineIndex % _lineColors.length],
-                        ),
-                        minHeight: 6,
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Story ${widget.currentIndex + 1}',
-                          style: TextStyle(color: Colors.white70, fontSize: 14),
-                        ),
-                        Text(
-                          'of ${widget.playlist.length}',
-                          style: TextStyle(color: Colors.white70, fontSize: 14),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-
-              // Controls
-              Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildControlButton(
-                      icon: Icons.skip_previous,
-                      onPressed: _previousStory,
-                    ),
-                    _buildControlButton(
-                      icon:
-                          _isPlaying
-                              ? Icons.pause_circle_filled
-                              : Icons.play_circle_filled,
-                      onPressed: _togglePlayPause,
-                      size: 48,
-                      isPlayButton: true,
-                    ),
-                    _buildControlButton(
-                      icon: Icons.skip_next,
-                      onPressed: _nextStory,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+          ],
         ),
       ),
     );

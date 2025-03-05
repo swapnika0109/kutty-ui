@@ -78,11 +78,11 @@ class MockStoryService {
     await Future.delayed(Duration(seconds: 1));
 
     switch (themeId) {
-      case '0':
-        return _planetProtectorStories;
       case '1':
-        return _mindfulMomentStories;
+        return _planetProtectorStories;
       case '2':
+        return _mindfulMomentStories;
+      case '3':
         return _chillChampionStories;
       default:
         return [];
