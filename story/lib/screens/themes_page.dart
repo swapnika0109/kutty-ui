@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:story/widgets/gradient_scaffold.dart';
+import '../services/mock_story_service.dart';
+import '../models/story.dart';
+import '../screens/story_player_page.dart';
 
 class ThemesPage extends StatefulWidget {
   @override
@@ -11,6 +14,10 @@ class _ThemesPageState extends State<ThemesPage>
   int? hoveredIndex;
   int? selectedTheme;
   late AnimationController _controller;
+  final MockStoryService _storyService = MockStoryService();
+  List<Story> _stories = [];
+  bool _isLoading = false;
+  String? _error;
 
   @override
   void initState() {
@@ -27,16 +34,54 @@ class _ThemesPageState extends State<ThemesPage>
     super.dispose();
   }
 
+  Future<void> _loadStories(int themeIndex) async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final stories = await _storyService.getStoriesByTheme(
+        themeIndex.toString(),
+      );
+      setState(() {
+        _stories = stories;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Failed to load stories';
+        _isLoading = false;
+      });
+    }
+  }
+
   void _selectTheme(int index) {
     setState(() {
       if (selectedTheme == index) {
         selectedTheme = null;
         _controller.reverse();
+        _stories = [];
       } else {
         selectedTheme = index;
         _controller.forward(from: 0);
+        _loadStories(index);
       }
     });
+  }
+
+  void _onStorySelected(Story story, int index) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder:
+            (context) => StoryPlayerPage(
+              story: story,
+              playlist: _stories,
+              currentIndex: index,
+            ),
+      ),
+    );
   }
 
   Widget _buildThemeGlobe(String imagePath, String title, int index) {
@@ -280,6 +325,16 @@ class _ThemesPageState extends State<ThemesPage>
   }
 
   Widget _buildPlaylist() {
+    if (_isLoading) {
+      return Center(child: CircularProgressIndicator());
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Text(_error!, style: TextStyle(color: Colors.white)),
+      );
+    }
+
     return AnimatedOpacity(
       duration: Duration(milliseconds: 400),
       opacity: selectedTheme != null ? 1.0 : 0.0,
@@ -317,10 +372,10 @@ class _ThemesPageState extends State<ThemesPage>
               ],
             ),
             SizedBox(height: 16),
-            // Add your playlist items here
-            ...List.generate(
-              5,
-              (index) => TweenAnimationBuilder(
+            ..._stories.asMap().entries.map((entry) {
+              final index = entry.key;
+              final story = entry.value;
+              return TweenAnimationBuilder(
                 duration: Duration(milliseconds: 400),
                 tween: Tween<double>(begin: 0, end: 1),
                 builder: (context, double value, child) {
@@ -328,92 +383,94 @@ class _ThemesPageState extends State<ThemesPage>
                     offset: Offset(0, (1 - value) * 50),
                     child: Opacity(
                       opacity: value,
-                      child: MouseRegion(
-                        onEnter: (_) => setState(() => hoveredIndex = index),
-                        onExit: (_) => setState(() => hoveredIndex = null),
-                        child: AnimatedContainer(
-                          duration: Duration(milliseconds: 200),
-                          margin: EdgeInsets.only(bottom: 12),
-                          padding: EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color:
-                                hoveredIndex == index
-                                    ? Colors.white.withOpacity(0.2)
-                                    : Colors.white.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
+                      child: GestureDetector(
+                        onTap: () => _onStorySelected(story, index),
+                        child: MouseRegion(
+                          onEnter: (_) => setState(() => hoveredIndex = index),
+                          onExit: (_) => setState(() => hoveredIndex = null),
+                          child: AnimatedContainer(
+                            duration: Duration(milliseconds: 200),
+                            margin: EdgeInsets.only(bottom: 12),
+                            padding: EdgeInsets.all(12),
+                            decoration: BoxDecoration(
                               color:
                                   hoveredIndex == index
-                                      ? Colors.white30
-                                      : Colors.transparent,
-                              width: 1,
-                            ),
-                            boxShadow:
-                                hoveredIndex == index
-                                    ? [
-                                      BoxShadow(
-                                        color: Colors.black12,
-                                        blurRadius: 8,
-                                        offset: Offset(0, 4),
-                                      ),
-                                    ]
-                                    : [],
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 60,
-                                height: 60,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(8),
-                                  image: DecorationImage(
-                                    image: AssetImage(
-                                      'assets/images/story_thumbnail.jpg',
-                                    ),
-                                    fit: BoxFit.cover,
-                                  ),
-                                ),
-                              ),
-                              SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Story ${index + 1}',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                    SizedBox(height: 4),
-                                    Text(
-                                      'A fascinating journey awaits...',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.white70,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Icon(
-                                Icons.play_arrow,
+                                      ? Colors.white.withOpacity(0.2)
+                                      : Colors.white.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
                                 color:
                                     hoveredIndex == index
-                                        ? Colors.white
-                                        : Colors.white54,
+                                        ? Colors.white30
+                                        : Colors.transparent,
+                                width: 1,
                               ),
-                            ],
+                              boxShadow:
+                                  hoveredIndex == index
+                                      ? [
+                                        BoxShadow(
+                                          color: Colors.black12,
+                                          blurRadius: 8,
+                                          offset: Offset(0, 4),
+                                        ),
+                                      ]
+                                      : [],
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 60,
+                                  height: 60,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(8),
+                                    image: DecorationImage(
+                                      image: NetworkImage(story.imageUrl),
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        story.title,
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      SizedBox(height: 4),
+                                      Text(
+                                        story.description,
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.white70,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Icon(
+                                  Icons.play_arrow,
+                                  color:
+                                      hoveredIndex == index
+                                          ? Colors.white
+                                          : Colors.white54,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
                     ),
                   );
                 },
-              ),
-            ),
+              );
+            }).toList(),
           ],
         ),
       ),
