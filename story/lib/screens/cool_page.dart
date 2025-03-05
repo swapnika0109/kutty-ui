@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:story/widgets/gradient_scaffold.dart';
+import 'package:story/screens/themes_page.dart';
 
 class CoolPage extends StatelessWidget {
   @override
@@ -96,6 +97,10 @@ class CoolPage extends StatelessWidget {
                 ElevatedButton(
                   onPressed: () {
                     // Define the action when the button is pressed
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => ThemesPage()),
+                    );
                   },
                   child: Text('Let\'s Get Started'),
                   style: ElevatedButton.styleFrom(
