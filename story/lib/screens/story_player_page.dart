@@ -37,6 +37,14 @@ class _StoryPlayerPageState extends State<StoryPlayerPage>
     _setupAnimations();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_storyImage is Image) {
+      precacheImage((_storyImage as Image).image, context);
+    }
+  }
+
   void _setupAnimations() {
     _bounceController = AnimationController(
       duration: Duration(milliseconds: 2000),
@@ -51,9 +59,30 @@ class _StoryPlayerPageState extends State<StoryPlayerPage>
 
   void _initializeImage() {
     try {
-      final imageData = widget.story.getDisplayImage();
-      if (imageData.startsWith('data:image')) {
-        final imageBytes = base64Decode(imageData.split(',').last);
+      final imageData = widget.story.base64Image;
+      print('Image data length: ${imageData.length}');
+
+      if (imageData.isEmpty) {
+        print('No image data available');
+        _storyImage = _buildPlaceholder();
+        return;
+      }
+
+      try {
+        // Extract the actual base64 data, handling both formats
+        String cleanBase64;
+        if (imageData.contains(',')) {
+          cleanBase64 = imageData.split(',')[1];
+        } else {
+          cleanBase64 = imageData;
+        }
+
+        // Remove any whitespace or newlines that might have gotten in
+        cleanBase64 = cleanBase64.trim();
+
+        print('Clean base64 length: ${cleanBase64.length}');
+        final imageBytes = base64Decode(cleanBase64);
+
         _storyImage = Image.memory(
           imageBytes,
           fit: BoxFit.cover,
@@ -62,28 +91,53 @@ class _StoryPlayerPageState extends State<StoryPlayerPage>
             print('Error displaying image: $error');
             return _buildPlaceholder();
           },
-        );
-        precacheImage((_storyImage as Image).image, context);
-      } else {
-        _storyImage = Image.asset(
-          'assets/images/story_placeholder.jpg',
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
-            return _buildPlaceholder();
+          frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+            if (wasSynchronouslyLoaded) return child;
+            return AnimatedOpacity(
+              opacity: frame == null ? 0 : 1,
+              duration: Duration(milliseconds: 500),
+              curve: Curves.easeOut,
+              child: child,
+            );
           },
         );
+      } catch (e, stackTrace) {
+        print('Error decoding base64: $e');
+        print('Stack trace: $stackTrace');
+        _storyImage = _buildPlaceholder();
       }
-    } catch (e) {
-      print('Error initializing image: $e');
+    } catch (e, stackTrace) {
+      print('Error in _initializeImage: $e');
+      print('Stack trace: $stackTrace');
       _storyImage = _buildPlaceholder();
     }
   }
 
   Widget _buildPlaceholder() {
     return Container(
-      color: Color(0xFF1E1A3C),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF2A1A4C), Color(0xFF1E1A3C)],
+        ),
+      ),
       child: Center(
-        child: Icon(Icons.image_not_supported, color: Colors.white24, size: 64),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.auto_stories_rounded, color: Colors.white24, size: 64),
+            SizedBox(height: 16),
+            Text(
+              'Story Time!',
+              style: TextStyle(
+                color: Colors.white38,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
