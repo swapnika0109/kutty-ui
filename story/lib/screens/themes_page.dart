@@ -56,9 +56,11 @@ class _ThemesPageState extends State<ThemesPage>
       final stories = await _storyService.getStories(
         themeId: (themeIndex + 1).toString(),
       );
+      final story = await _storyService.getStoryWithValues();
       setState(() {
         // Append the API stories to existing mock data
         _stories.addAll(stories);
+        _stories.add(story);
         _isLoading = false;
       });
     } catch (e) {

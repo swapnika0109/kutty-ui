@@ -98,4 +98,17 @@ flutter:
     - assets/images/739f99a4-17e2-4068-bb9c-29834db0cfd5.jpeg
     - assets/images/c426305a-ce51-4ff7-a0ff-b058a5f83a0e.jpeg
     - assets/images/a9c472bb-4419-4607-abf4-9449d75dd683.jpeg
+  
+  fonts:
+    - family: Playfair Display
+      fonts:
+        - asset: assets/fonts/PlayfairDisplay-Regular.ttf
+        - asset: assets/fonts/PlayfairDisplay-Bold.ttf
+    - family: Merriweather
+      fonts:
+        - asset: assets/fonts/Merriweather-Regular.ttf
+    - family: Lora
+      fonts:
+        - asset: assets/fonts/Lora-Regular.ttf
+        - asset: assets/fonts/Lora-Italic.ttf
 

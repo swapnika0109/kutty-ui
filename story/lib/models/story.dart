@@ -31,14 +31,16 @@ class Story {
 
   // Helper method to get the image for display
   String getDisplayImage() {
-    if (base64Image.isNotEmpty) {
-      return base64Image;
+    // If it's a base64 image that doesn't have the data:image prefix, add it
+    if (base64Image.startsWith('/9j/')) {
+      return 'data:image/jpeg;base64,' + base64Image;
     }
-    return imageUrl;
+    return base64Image;
   }
 
   // Helper method to check if image is base64
   bool isBase64Image() {
-    return base64Image.isNotEmpty;
+    return base64Image.startsWith('data:image') ||
+        base64Image.startsWith('/9j/');
   }
 }
