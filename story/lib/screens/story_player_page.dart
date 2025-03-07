@@ -32,6 +32,7 @@ class _StoryPlayerPageState extends State<StoryPlayerPage>
   @override
   void initState() {
     super.initState();
+    print('DEBUG: initState called');
     _initializeStory();
     _initializeImage();
     _setupAnimations();
@@ -143,16 +144,51 @@ class _StoryPlayerPageState extends State<StoryPlayerPage>
   }
 
   void _initializeStory() {
+    print('DEBUG: Starting story initialization');
+    print('DEBUG: Story object: ${widget.story}');
+    print('DEBUG: Raw story text: "${widget.story.storyText}"');
+
     // Add null check and provide default empty string if storyText is null
-    _storyLines =
-        (widget.story.storyText ?? '')
+    final storyText = widget.story.storyText ?? '';
+
+    if (storyText.isEmpty) {
+      print('DEBUG: Story text is empty');
+      setState(() {
+        _storyLines = ['This story will be available soon!'];
+        _currentLineIndex = 0;
+      });
+      return;
+    }
+
+    // Remove any leading/trailing whitespace and split by newlines
+    final lines =
+        storyText
+            .trim()
             .split('\n')
-            .where((line) => line.trim().isNotEmpty)
+            .map((line) => line.trim())
+            .where((line) => line.isNotEmpty)
             .toList();
 
-    // Add a default message if no story lines are found
-    if (_storyLines.isEmpty) {
-      _storyLines = ['This story will be available soon!'];
+    print('DEBUG: Processed ${lines.length} lines');
+
+    setState(() {
+      _storyLines = lines;
+      _currentLineIndex = 0;
+    });
+
+    // Print each line for debugging
+    _storyLines.asMap().forEach((index, line) {
+      print('DEBUG: Line $index: "$line"');
+    });
+  }
+
+  @override
+  void didUpdateWidget(StoryPlayerPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    print('DEBUG: didUpdateWidget called');
+    if (oldWidget.story.storyText != widget.story.storyText) {
+      print('DEBUG: Story text changed, reinitializing');
+      _initializeStory();
     }
   }
 
@@ -353,58 +389,74 @@ class _StoryPlayerPageState extends State<StoryPlayerPage>
                           ),
                           margin: EdgeInsets.symmetric(vertical: 20),
                           padding: EdgeInsets.all(20),
-                          child: ListView.builder(
-                            itemCount: _storyLines.length,
-                            itemBuilder: (context, index) {
-                              final isCurrentLine = index == _currentLineIndex;
-                              return Container(
-                                padding: EdgeInsets.symmetric(
-                                  vertical: 12,
-                                  horizontal: 16,
-                                ),
-                                margin: EdgeInsets.only(bottom: 8),
-                                decoration: BoxDecoration(
-                                  color:
-                                      isCurrentLine
-                                          ? Color(0xFF7B9CFF).withOpacity(0.15)
-                                          : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border:
-                                      isCurrentLine
-                                          ? Border.all(
-                                            color: Color(
-                                              0xFF7B9CFF,
-                                            ).withOpacity(0.3),
-                                          )
-                                          : null,
-                                ),
-                                child: Row(
-                                  children: [
-                                    if (isCurrentLine) ...[
-                                      Text(
-                                        "🎵 ",
-                                        style: TextStyle(fontSize: 20),
-                                      ),
-                                      SizedBox(width: 8),
-                                    ],
-                                    Expanded(
-                                      child: Text(
-                                        _storyLines[index],
-                                        style: TextStyle(
-                                          color:
-                                              isCurrentLine
-                                                  ? Colors.white
-                                                  : Colors.white60,
-                                          fontSize: 18,
-                                          height: 1.6,
-                                        ),
+                          child:
+                              _storyLines.isEmpty
+                                  ? Center(
+                                    child: Text(
+                                      'No story content available',
+                                      style: TextStyle(
+                                        color: Colors.white60,
+                                        fontSize: 18,
                                       ),
                                     ),
-                                  ],
-                                ),
-                              );
-                            },
-                          ),
+                                  )
+                                  : ListView.builder(
+                                    itemCount: _storyLines.length,
+                                    itemBuilder: (context, index) {
+                                      final isCurrentLine =
+                                          index == _currentLineIndex;
+                                      return Container(
+                                        padding: EdgeInsets.symmetric(
+                                          vertical: 12,
+                                          horizontal: 16,
+                                        ),
+                                        margin: EdgeInsets.only(bottom: 8),
+                                        decoration: BoxDecoration(
+                                          color:
+                                              isCurrentLine
+                                                  ? Color(
+                                                    0xFF7B9CFF,
+                                                  ).withOpacity(0.15)
+                                                  : Colors.transparent,
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          border:
+                                              isCurrentLine
+                                                  ? Border.all(
+                                                    color: Color(
+                                                      0xFF7B9CFF,
+                                                    ).withOpacity(0.3),
+                                                  )
+                                                  : null,
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            if (isCurrentLine) ...[
+                                              Text(
+                                                "🎵 ",
+                                                style: TextStyle(fontSize: 20),
+                                              ),
+                                              SizedBox(width: 8),
+                                            ],
+                                            Expanded(
+                                              child: Text(
+                                                _storyLines[index],
+                                                style: TextStyle(
+                                                  color:
+                                                      isCurrentLine
+                                                          ? Colors.white
+                                                          : Colors.white60,
+                                                  fontSize: 18,
+                                                  height: 1.6,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  ),
                         ),
                       ),
 

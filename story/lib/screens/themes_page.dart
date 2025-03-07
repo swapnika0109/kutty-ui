@@ -39,34 +39,30 @@ class _ThemesPageState extends State<ThemesPage>
     setState(() {
       _isLoading = true;
       _error = null;
-      // Initialize with mock data immediately
-      _stories = [
-        Story(
-          id: 'mock1',
-          title: 'Loading more stories...',
-          description: 'Please wait while we fetch more stories.',
-          base64Image: '', // Add a placeholder image if needed
-          storyText: '',
-          themeId: (themeIndex + 1).toString(),
-        ),
-      ];
     });
 
     try {
+      // Get stories from API
       final stories = await _storyService.getStories(
         themeId: (themeIndex + 1).toString(),
       );
-      final story = await _storyService.getStoryWithValues();
+
+      print('Received ${stories.length} stories from API');
+
+      if (stories.isEmpty) {
+        throw Exception('No stories received from API');
+      }
+
       setState(() {
-        // Append the API stories to existing mock data
-        _stories.addAll(stories);
-        _stories.add(story);
+        _stories = stories;
         _isLoading = false;
       });
     } catch (e) {
+      print('Error loading stories: $e');
       setState(() {
-        _error = 'Failed to load some stories';
+        _error = 'Failed to load stories. Please try again.';
         _isLoading = false;
+        _stories = []; // Clear stories on error
       });
     }
   }

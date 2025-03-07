@@ -32,6 +32,22 @@ In a very short and fascinating way, the story teaches kids that taking care of 
     );
   }
 
+  Story _constructStoryFromJson(Map<String, dynamic> json) {
+    print('Constructing story from JSON:');
+    print('- story_id: ${json['story_id']}');
+    print('- storyText: ${json['storyText']}');
+    print('- image length: ${json['image']?.length}');
+
+    return Story(
+      id: json['story_id']?.toString() ?? DateTime.now().toString(),
+      title: 'Generated Story',
+      description:
+          json['storyText']?.toString().split('\n').first ?? 'New Story',
+      storyText: json['storyText']?.toString() ?? '',
+      base64Image: json['image']?.toString() ?? '',
+    );
+  }
+
   Future<List<Story>> getStories({required String themeId}) async {
     try {
       final response = await http
@@ -43,36 +59,38 @@ In a very short and fascinating way, the story teaches kids that taking care of 
             },
             body: json.encode({
               'theme': themeId,
-              'topic': 'dragon tale',
+              'topic': 'Homes of nature',
               'type': 'story',
             }),
           )
           .timeout(Duration(seconds: 10));
 
       print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final dynamic data = json.decode(response.body);
-        if (data is List) {
-          return data.map((json) => Story.fromJson(json)).toList();
-        } else if (data is Map<String, dynamic>) {
-          return [Story.fromJson(data)];
+
+        if (data is Map<String, dynamic>) {
+          final story = _constructStoryFromJson(data);
+          return [story];
+        } else if (data is List) {
+          final stories =
+              data
+                  .map(
+                    (json) =>
+                        _constructStoryFromJson(json as Map<String, dynamic>),
+                  )
+                  .toList();
+          print('Created ${stories.length} stories');
+          return stories;
         }
       }
 
-      print('Falling back to mock stories due to API response issues');
-      return _getMockStories(themeId);
+      throw Exception('Failed to load stories: ${response.statusCode}');
     } catch (e) {
-      print('API error, falling back to mock stories: $e');
-      return _getMockStories(themeId);
+      print('API error: $e');
+      throw e;
     }
-  }
-
-  Future<List<Story>> _getMockStories(String themeId) async {
-    // Convert themeId to match mock service format (1-based to 0-based index)
-    final mockThemeId = (int.parse(themeId)).toString();
-    return await _mockService.getStoriesByTheme(mockThemeId);
   }
 
   Future<Story> generateStoryWithImage({
