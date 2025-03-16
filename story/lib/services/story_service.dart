@@ -32,22 +32,6 @@ In a very short and fascinating way, the story teaches kids that taking care of 
     );
   }
 
-  Story _constructStoryFromJson(Map<String, dynamic> json) {
-    print('Constructing story from JSON:');
-    print('- story_id: ${json['story_id']}');
-    print('- storyText: ${json['storyText']}');
-    print('- image length: ${json['image']?.length}');
-
-    return Story(
-      id: json['story_id']?.toString() ?? DateTime.now().toString(),
-      title: 'Generated Story',
-      description:
-          json['storyText']?.toString().split('\n').first ?? 'New Story',
-      storyText: json['storyText']?.toString() ?? '',
-      base64Image: json['image']?.toString() ?? '',
-    );
-  }
-
   Future<List<Story>> getStories({required String themeId}) async {
     try {
       final response = await http
@@ -71,15 +55,12 @@ In a very short and fascinating way, the story teaches kids that taking care of 
         final dynamic data = json.decode(response.body);
 
         if (data is Map<String, dynamic>) {
-          final story = _constructStoryFromJson(data);
+          final story = Story.fromJson(data);
           return [story];
         } else if (data is List) {
           final stories =
               data
-                  .map(
-                    (json) =>
-                        _constructStoryFromJson(json as Map<String, dynamic>),
-                  )
+                  .map((json) => Story.fromJson(json as Map<String, dynamic>))
                   .toList();
           print('Created ${stories.length} stories');
           return stories;

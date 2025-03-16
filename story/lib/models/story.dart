@@ -6,6 +6,8 @@ class Story {
   final String storyText;
   final String base64Image;
   final String imageUrl;
+  final String audio;
+  final String audioType;
 
   Story({
     this.id = '',
@@ -15,17 +17,21 @@ class Story {
     this.storyText = '',
     this.base64Image = '',
     this.imageUrl = '',
+    this.audio = '',
+    this.audioType = '',
   });
 
   factory Story.fromJson(Map<String, dynamic> json) {
     // Handle API response format
     return Story(
-      id: json['id']?.toString() ?? '',
+      id: json['story_id']?.toString() ?? '',
       title: json['title'] ?? '',
       description: json['description'] ?? '',
       themeId: json['theme_id']?.toString() ?? '',
       storyText: json['story_text'] ?? json['content'] ?? '',
       base64Image: json['image'] ?? '',
+      audio: json['audio'] ?? '',
+      audioType: json['audio_type'] ?? '',
     );
   }
 

@@ -3,6 +3,11 @@ import '../models/story.dart';
 import 'dart:convert';
 import 'dart:ui';
 import 'dart:async';
+import 'package:just_audio/just_audio.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:math' as math;
 
 class StoryPlayerPage extends StatefulWidget {
   final Story story;
@@ -28,13 +33,17 @@ class _StoryPlayerPageState extends State<StoryPlayerPage>
   late Widget _storyImage;
   late AnimationController _bounceController;
   late Animation<double> _bounceAnimation;
+  late AudioPlayer _audioPlayer;
+  bool _isAudioLoaded = false;
 
   @override
   void initState() {
     super.initState();
     print('DEBUG: initState called');
+    _audioPlayer = AudioPlayer();
     _initializeStory();
     _initializeImage();
+    _initializeAudio();
     _setupAnimations();
   }
 
@@ -192,24 +201,101 @@ class _StoryPlayerPageState extends State<StoryPlayerPage>
     }
   }
 
-  void _togglePlay() {
+  Future<void> _initializeAudio() async {
+    print('Initializing audio...');
+    if (widget.story.audio.isEmpty) {
+      print('No audio data available - empty audio string');
+      return;
+    }
+
+    try {
+      // Clean the base64 audio string
+      String cleanBase64;
+      if (widget.story.audio.contains(',')) {
+        cleanBase64 = widget.story.audio.split(',')[1];
+      } else {
+        cleanBase64 = widget.story.audio;
+      }
+      cleanBase64 = cleanBase64.trim();
+
+      print('Audio base64 length: ${cleanBase64.length}');
+      print('Audio type: ${widget.story.audioType}');
+
+      if (kIsWeb) {
+        // Fix: Remove 'audio/' if it's already in the audioType
+        final audioType = widget.story.audioType.replaceAll('audio/', '');
+        final mimeType =
+            audioType.isNotEmpty ? 'audio/$audioType' : 'audio/wav';
+
+        final audioUrl = 'data:$mimeType;base64,$cleanBase64';
+        print('Audio URL MIME type: $mimeType'); // Debug log
+
+        // Load the audio from the data URI
+        await _audioPlayer.setAudioSource(
+          AudioSource.uri(Uri.parse(audioUrl)),
+          initialPosition: Duration.zero,
+        );
+      } else {
+        // For mobile platforms, use the existing file-based approach
+        final audioBytes = base64Decode(cleanBase64);
+        final tempDir = await getTemporaryDirectory();
+        final audioType = widget.story.audioType.replaceAll('audio/', '');
+        final tempFile = File('${tempDir.path}/temp_audio.$audioType');
+        await tempFile.writeAsBytes(audioBytes);
+
+        await _audioPlayer.setAudioSource(
+          AudioSource.file(tempFile.path),
+          initialPosition: Duration.zero,
+        );
+      }
+
+      print('Audio loaded successfully');
+      setState(() => _isAudioLoaded = true);
+    } catch (e, stackTrace) {
+      print('Error initializing audio: $e');
+      print('Stack trace: $stackTrace');
+      setState(() => _isAudioLoaded = false);
+    }
+  }
+
+  void _togglePlay() async {
+    if (!_isAudioLoaded) {
+      print('Audio not loaded yet');
+      return;
+    }
+
     setState(() {
       _isPlaying = !_isPlaying;
-      if (_isPlaying) {
-        _startReading();
-      } else {
-        _playTimer?.cancel();
-      }
     });
+
+    // Stop any currently playing audio first
+    await _audioPlayer.stop();
+    _playTimer?.cancel();
+
+    if (_isPlaying) {
+      setState(() {
+        _currentLineIndex = 0;
+      });
+      await _audioPlayer.seek(Duration.zero);
+      await _audioPlayer.play();
+      _startReading();
+    } else {
+      // When pausing, just ensure everything is stopped
+      await _audioPlayer.pause();
+      _playTimer?.cancel();
+    }
   }
 
   void _startReading() {
     _playTimer?.cancel();
-    _playTimer = Timer.periodic(Duration(seconds: 3), (timer) {
+    _playTimer = Timer.periodic(Duration(seconds: _calculateLineDelay()), (
+      timer,
+    ) {
       if (_currentLineIndex < _storyLines.length - 1) {
         setState(() => _currentLineIndex++);
       } else {
         timer.cancel();
+        _audioPlayer.stop(); // Stop audio when reaching the end
         setState(() {
           _isPlaying = false;
           _currentLineIndex = 0;
@@ -218,8 +304,19 @@ class _StoryPlayerPageState extends State<StoryPlayerPage>
     });
   }
 
+  int _calculateLineDelay() {
+    String currentLine = _storyLines[_currentLineIndex];
+    int wordCount = currentLine.split(RegExp(r'\s+')).length;
+    print('Word count: $wordCount');
+    print('Current line: ${math.max(200, (wordCount * 0.33).round())}');
+    // 0.5ms (500 microseconds) per word with a minimum of 200ms
+    return math.max(0, (wordCount * 0.35).round());
+  }
+
   @override
   void dispose() {
+    _audioPlayer.stop(); // Stop audio when disposing
+    _audioPlayer.dispose();
     _bounceController.dispose();
     _playTimer?.cancel();
     super.dispose();
@@ -558,6 +655,7 @@ class _StoryPlayerPageState extends State<StoryPlayerPage>
   }
 
   void _navigateToStory(int index) {
+    _audioPlayer.stop(); // Stop current audio before navigating
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
